@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+
+import re
+import operator
+import csv
+
+def log_error(file):
+    error = {}
+    with open(file) as f:
+      for line in f:
+          l = re.search(r"(?<=ticky: ERROR)[\w?' ]*",line)
+          if l == None:
+             continue
+          else:
+             error[l[0]] = error.get(l[0],0)+1
+
+    error = sorted(error.items(),key = operator.itemgetter(1),reverse = True)
+    error_dict = []
+    for i in range(len(error)):
+       dict =  {"Error":error[i][0],
+         "Count":error[i][1]}
+       error_dict.append(dict)
+    return(error_dict)
+
+
+def write_error(filename,errorFile):
+    keys = ["Error","Count"]
+    with open(filename,"w") as file:
+         writer= csv.DictWriter(file,fieldnames=keys)
+         writer.writeheader()
+         writer.writerows(errorFile)
+
+
+error = log_error("syslog.txt")
+write_error("errorfile.txt",error)         
+
+def user_log(file):
+   per_user = {}
+   per_user_list = []
+   with open(file) as f:
+      for line in f:
+         username = re.search(r"(?<=\()[\w?\.]*",line).group(0)
+         if not username in per_user.keys():
+            per_user[username] = {"ERROR":0,"INFO":0}
+         if re.search(r"ERROR",line) != None:
+            per_user[username]["ERROR"] = per_user[username].get("ERROR",0)+1
+         else:
+            per_user[username]["INFO"] = per_user[username].get("INFO",0)+1
+
+      per_user = sorted(per_user.items(),key = operator.itemgetter(0),reverse = False)
+      
+      for i in range(len(per_user)):
+         per_user_list.append({"Username":per_user[i][0],
+                              "ERROR": per_user[i][1].get("ERROR"),
+                              "INFO": per_user[i][1].get("INFO")})
+
+
+   return per_user_list
+
+def write_userlog(filename,logginfile):
+    keys = ["Username","ERROR","INFO"]
+    with open(filename,"w") as file:
+         writer= csv.DictWriter(file,fieldnames=keys)
+         writer.writeheader()
+         writer.writerows(logginfile)
+
+
+test = user_log("syslog.txt")
+write_userlog("usernames.txt",test)
